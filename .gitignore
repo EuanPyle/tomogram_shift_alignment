@@ -1,1 +1,5 @@
 *.mrc
+test/*
+tomogram_shift_alignment.egg-info
+__pycache__
+.eggs/
