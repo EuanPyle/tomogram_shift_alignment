@@ -1,41 +1,12 @@
 from pathlib import Path
 from thefuzz import process
+from .run_corrsearch3d import run_corrsearch3d
+from .apply_shifts import apply_shifts
 
 import os,sys
 import starfile
 import typer
-
-#For each tomogram pairing
-#----- ONE SCRIPT -----
-#Read tomogram size, automatically set patch size, numbers, and boudnaries
-
-#Generate command, and run os.system(COMMAND)
-#end
-
-#----- ANOTHER SCRIPT -----
-#Read IMOD output
-
-#Parse into array
-
-#For CC values of over 0.95 (optimise), take X Y and Z shifts, if none or few, bail and warn
-
-#Average shifts, warn if SD too high
-
-#Unbin the shifts
-
-#Save shifts in .txt file in  a folder
-#end
-
-#end for loop
-
-#----- ANOTHER SCRIPT -----
-#read .txt files
-
-#open star file and apply shifts relative to each tomogram and re-write
-
-
-
-#============================================================================================================================
+import numpy
 
 cli = typer.Typer()
 
@@ -45,6 +16,7 @@ def tomogram_shift_alignment(
     new_tomograms_dir: Path,
     particles_star: Path,
     tomogram_binning: float,
+    tomogram_trimming: float,
 ) -> Path: ##### CORRECT? Output should be path to new file
     """tomogram_shift_alignment
     
@@ -59,8 +31,10 @@ def tomogram_shift_alignment(
     new_tomograms_dir : path to the directory containing the tomograms which have been generated using a 'new' tilt series alignment methods 
         and are therefore shifted compared to the original tomograms \n
     particles_star : path to the star file containing subtomogram particle positions for the tomograms in original_tomograms_dir \n
-    tomograms_binning : binning level (IMOD convention) of your tomograms so particle shifts can be written in unbinned coordinates for 
+    tomogram_binning : binning level (IMOD convention) of your tomograms so particle shifts can be written in unbinned coordinates for 
         RELION 4.0 \n 
+    tomogram_trimming : number (in percent) to trim the tomograms by before comparing the two. Useful if there is a lot of empty space at the 
+        top/bottom/sides of a tomogram. Enter 0 is you want to use the whole tomogram, but sometimes this gives errors.
     
     Returns
     ---------------
@@ -91,16 +65,14 @@ def tomogram_shift_alignment(
     matched_new_tomograms = {}
     for tomo in original_tomo_list:
         matched_new_tomograms.update({tomo:process.extractOne(tomo,new_tomo_list)[0]})    
-    
-NEWSCRIPT: READ MRC FIZE, automatically set patch size, numbers, and boudnaries, generate command  
-    
+        
     for tomo in matched_new_tomograms:
-        run_corrsearch3d((Path(original_tomograms_dir) / tomo),(Path(new_tomograms_dir) / matched_new_tomograms[tomo]))
-    
-    print('Working')
-    
-    
-    
+        run_corrsearch3d((Path(original_tomograms_dir) / tomo),(Path(new_tomograms_dir) / matched_new_tomograms[tomo]),tomogram_trimming)
+        apply_shifts((Path(original_tomograms_dir) / tomo),particles_star,tomogram_binning)
+	
+
+
+
     
     
     
