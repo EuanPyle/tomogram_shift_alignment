@@ -17,8 +17,8 @@ def tomogram_shift_alignment(
     new_tomograms_dir: Path,
     particles_star: Path,
     tomogram_binning: float,
-    tomogram_trimming: Optional[float] = 40,
-) -> Path: 
+    tomogram_trimming: Optional[float] = typer.Argument(40),
+): 
     """tomogram_shift_alignment
     
     Requirements 
@@ -40,7 +40,7 @@ def tomogram_shift_alignment(
     Returns
     ---------------
     
-    adjusted_star_file : a star file with adjusted subtomogram coordinates which should match the tomograms in new_tomograms_dir \n
+    tomogram_coordinates_shifted.star : a star file with adjusted subtomogram coordinates which should match the tomograms in new_tomograms_dir \n
     
     Example Input
     ---------------
@@ -63,11 +63,19 @@ def tomogram_shift_alignment(
         print('Can\'t find dm2mrc, try loading imod outside of this script first. Birkbeck users type: module load imod')
         sys.exit()
     
-    original_tomo_list = list(Path(original_tomograms_dir).glob('*'))
+    original_tomo_list = list(Path(original_tomograms_dir).glob('*.mrc'))
+    
+    if original_tomo_list == []:
+        original_tomo_list = list(Path(original_tomograms_dir).glob('*.st'))
+
     for idx in range(len(original_tomo_list)):
         original_tomo_list[idx] = original_tomo_list[idx].name
     
-    new_tomo_list = list(Path(new_tomograms_dir).glob('*'))
+    new_tomo_list = list(Path(new_tomograms_dir).glob('*.mrc'))
+    
+    if new_tomo_list == []:
+        new_tomo_list = list(Path(new_tomograms_dir).glob('*.st'))
+    
     for idx in range(len(new_tomo_list)):
         new_tomo_list[idx] = new_tomo_list[idx].name
     
@@ -84,52 +92,8 @@ def tomogram_shift_alignment(
             particles_star = Path('./tomogram_coordinates_shifted.star')
         run_corrsearch3d((Path(original_tomograms_dir) / tomo),(Path(new_tomograms_dir) / matched_new_tomograms[tomo]),tomogram_trimming)
         apply_shifts((Path(original_tomograms_dir) / tomo),particles_star,tomogram_binning)
-	
-
-
-
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-
-
+    if os.path.exists('./tomogram_coordinates_shifted.star'):
+        print('\n\nProduced tomogram_coordinates_shifted.star in this directory. Import the new tomograms into RELION 4, then use tomogram_coordinates_shifted.star as input for RELION 4\'s Import Coordinates function.\n\n')
+    else:
+        print('No output, error somewhere')
