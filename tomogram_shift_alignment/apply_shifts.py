@@ -17,18 +17,19 @@ def apply_shifts(
     #Read IMOD output into array
     imod_output = np.loadtxt(full_tomo_name, skiprows=1)
         
-    #Delete rows with CC lower than 0.95
+    #Delete rows with CC lower than 0.6
     delete_list = []
     for idx in range(len(imod_output)):
-        if imod_output[idx][6] < 0.95: 
+        if imod_output[idx][6] < 0.6: 
             delete_list.append(idx) 
-    
-    imod_output = np.delete(imod_output,delete_list,axis=0)
-    
+        
     #Warn no rows
-    if imod_output.size == 0:
-        print(f"Warning, {full_tomo_name.stem} has poor CC values (<0.95) between new and old tomogram and therefore the shifts are unreliable, bailing")
-        return
+    if len(delete_list) == imod_output.shape[0]: 
+        print(f"Warning, {full_tomo_name} has poor CC values (<0.6) between new and old tomogram and therefore the shifts are unreliable, averaging with the highest 6 CC values")
+        imod_output = imod_output[imod_output[:,6].argsort()]
+        imod_output = imod_output[-6:,:]
+    else:
+        imod_output = np.delete(imod_output,delete_list,axis=0)    
     
     #Extract XYZ Coordinates
     imod_output = imod_output[:,3:6]
@@ -45,9 +46,9 @@ def apply_shifts(
         
     #Open star file and apply shifts relative to each tomogram and re-write
     star = starfile.read(particles_star)
-    
+        
     #Extract the particles from star file
-    if len(star) > 1:
+    if 'particles' in star:
         particles = star['particles']
     else:
         particles = star
@@ -55,15 +56,14 @@ def apply_shifts(
     #Find rows of the tomogram of interest	
     idx = particles.index[particles['rlnTomoName'] == tomo_name.stem].tolist()
     
-    
     for i in idx:
-        particles.loc[i,'rlnCoordinateX'] = particles.loc[i,'rlnCoordinateX'] + unbin_x
-        particles.loc[i,'rlnCoordinateY'] = particles.loc[i,'rlnCoordinateY'] + unbin_y
-        particles.loc[i,'rlnCoordinateZ'] = particles.loc[i,'rlnCoordinateZ'] + unbin_z
-
-    if len(star) > 1:
-        star['particles'] = particles
-        starfile.write(star,'tomogram_shifted.star',overwrite=True)
+        particles.loc[particles.index[i],['rlnCoordinateX']] = particles.loc[i,'rlnCoordinateX'] + unbin_x
+        particles.loc[particles.index[i],['rlnCoordinateY']] = particles.loc[i,'rlnCoordinateY'] + unbin_y
+        particles.loc[particles.index[i],['rlnCoordinateZ']] = particles.loc[i,'rlnCoordinateZ'] + unbin_z
+            
+    starfile.write(particles,'tomogram_coordinates_shifted.star',overwrite=True)
     
-    else:
-        starfile.write(particles,'tomogram_shifted.star',overwrite=True)
+    os.rename(f"./{full_tomo_name}", f"./tomogram_shifts/{full_tomo_name}")
+    
+	
+    

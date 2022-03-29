@@ -2,6 +2,7 @@ from pathlib import Path
 from thefuzz import process
 from .run_corrsearch3d import run_corrsearch3d
 from .apply_shifts import apply_shifts
+from typing import Optional
 
 import os,sys
 import starfile
@@ -16,8 +17,8 @@ def tomogram_shift_alignment(
     new_tomograms_dir: Path,
     particles_star: Path,
     tomogram_binning: float,
-    tomogram_trimming: float,
-) -> Path: ##### CORRECT? Output should be path to new file
+    tomogram_trimming: Optional[float] = 40,
+) -> Path: 
     """tomogram_shift_alignment
     
     Requirements 
@@ -33,7 +34,7 @@ def tomogram_shift_alignment(
     particles_star : path to the star file containing subtomogram particle positions for the tomograms in original_tomograms_dir \n
     tomogram_binning : binning level (IMOD convention) of your tomograms so particle shifts can be written in unbinned coordinates for 
         RELION 4.0 \n 
-    tomogram_trimming : number (in percent) to trim the tomograms by before comparing the two. Useful if there is a lot of empty space at the 
+    (Optional, default 40%) tomogram_trimming : number (in percent) to trim the tomograms by before comparing the two. Useful if there is a lot of empty space at the 
         top/bottom/sides of a tomogram. Enter 0 is you want to use the whole tomogram, but sometimes this gives errors.
     
     Returns
@@ -46,6 +47,15 @@ def tomogram_shift_alignment(
     
     tomogram_shift_alignment './' '../new_tomos/' './particles.star' 8
     """
+        
+    if os.path.exists('./tomogram_coordinates_shifted.star'):
+        print('tomogram_coordinates_shifted.star already exists.')  
+        user = input('Delete this file? (y/n): ')
+        if user == 'y' or 'Y' or 'yes' or 'Yes':
+            os.remove('tomogram_coordinates_shifted.star')
+        else:
+            print('Rename or move tomogram_coordinates_shifted.star elsewhere for this program to run')
+            sys.exit()    
     
     #Test IMOD is loaded
     imod_test = os.popen('dm2mrc').read()
@@ -65,8 +75,13 @@ def tomogram_shift_alignment(
     matched_new_tomograms = {}
     for tomo in original_tomo_list:
         matched_new_tomograms.update({tomo:process.extractOne(tomo,new_tomo_list)[0]})    
-        
+    
+    if not(os.path.isdir('tomogram_shifts')):
+        os.mkdir('tomogram_shifts') 
+     
     for tomo in matched_new_tomograms:
+        if os.path.exists('./tomogram_coordinates_shifted.star'):
+            particles_star = Path('./tomogram_coordinates_shifted.star')
         run_corrsearch3d((Path(original_tomograms_dir) / tomo),(Path(new_tomograms_dir) / matched_new_tomograms[tomo]),tomogram_trimming)
         apply_shifts((Path(original_tomograms_dir) / tomo),particles_star,tomogram_binning)
 	
