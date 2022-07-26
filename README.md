@@ -8,13 +8,14 @@ This is designed for RELION v4.0 star files. The generated star file should be i
 #### Installation and Usage
 #### Requirements
 - Python (3.0 or later)
+- IMOD
 
 Installation is carried out via:
 ```sh
 pip install tomogram_shift_alignment
 ```
 
-Invoke from the command line via typing:
+After ensuring IMOD is on the PATH, invoke from the command line via typing:
 ```sh
 tomogram_shift_alignment [original_tomograms] [new_tomograms] [particles_star] [tomogram_binning] [Optional: tomogram_trimming]
 
